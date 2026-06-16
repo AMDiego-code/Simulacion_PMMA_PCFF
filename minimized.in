@@ -1,0 +1,77 @@
+# ==========================================
+# PREP → REPLICATE → RELAX → NPT → MINIMIZED
+# ==========================================
+
+units real
+atom_style full
+boundary p p p
+
+read_data p100.data
+
+# ==========================================
+# REPLICATE (AJUSTA ESTOS VALORES)
+# ==========================================
+
+replicate 5 2 1
+
+# ==========================================
+# SETTINGS
+# ==========================================
+
+neighbor 2.0 bin
+neigh_modify delay 0 every 1 check yes
+
+thermo 500
+thermo_style custom step temp pe press density
+
+# ==========================================
+# 1) FF SUAVE (NO FISICO)
+# ==========================================
+
+pair_style soft 8.0
+pair_coeff * * 1.0
+
+bond_style harmonic
+bond_coeff * 1000.0 1.5
+
+angle_style harmonic
+angle_coeff * 100.0 110.0
+
+timestep 0.25
+
+velocity all create 300.0 12345 mom yes rot yes dist gaussian
+
+# ==========================================
+# 2) RELAJACION (ESTABILIZAR)
+# ==========================================
+
+fix 1 all nve
+fix 2 all langevin 300.0 300.0 100.0 12345
+
+run 20000
+
+unfix 1
+unfix 2
+
+# ==========================================
+# 3) COMPRESION SUAVE (NPT)
+# ==========================================
+
+fix 3 all npt temp 300.0 300.0 100.0 iso 1.0 1.0 1000.0
+
+run 200000
+
+unfix 3
+
+# ==========================================
+# 4) MINIMIZACION FINAL
+# ==========================================
+
+min_style cg
+minimize 1e-4 1e-6 2000 20000
+
+# ==========================================
+# OUTPUT
+# ==========================================
+
+write_data minimized_soft.data
