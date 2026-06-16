@@ -1,0 +1,116 @@
+units real
+atom_style full
+boundary p p p
+
+read_data p100.data
+
+# FORCE FIELD 
+
+pair_style lj/class2/coul/long 12.0
+bond_style class2
+angle_style quartic
+dihedral_style fourier
+kspace_style pppm 1e-4
+
+include pcff_params.lmp
+# REPLICATE
+
+replicate 2 2 3
+
+# SETTINGS
+
+neighbor 2.0 bin
+neigh_modify delay 0 every 1 check yes
+
+thermo 10000
+thermo_style custom step temp pe press density
+
+timestep 1.0
+
+# 1) MINIMIZACION 
+
+dump d1 all custom 10000 traj_min.lammpstrj id type x y z
+dump_modify d1 sort id
+
+min_style cg
+minimize 1e-4 1e-6 5000 50000
+
+undump d1
+
+# ==========================================
+# 2) NPT (EQUILIBRACION)
+# ==========================================
+dump d2 all custom 20000 traj_npt.lammpstrj id type x y z
+dump_modify d2 sort id
+
+fix shakeH all shake 0.0001 20 0 b 9 10 11
+
+# 45 atm
+fix npt1 all npt temp 300 300 100 iso 45 45 10000
+run 200000
+unfix npt1
+
+# 45 → 20
+fix npt2 all npt temp 300 300 100 iso 45 20 10000
+run 200000
+unfix npt2
+
+# 20 → 5
+fix npt3 all npt temp 300 300 100 iso 20 5 10000
+run 200000
+unfix npt3
+
+#
+#TAC 300k a 400k
+#
+
+fix anneal1 all npt temp 300 400 100 iso 5 5 10000
+run 300000
+unfix anneal1
+
+fix anneal2 all npt temp 400 500 100 iso 5 5 10000
+run 300000
+unfix anneal2
+
+fix anneal3 all npt temp 500 600 100 iso 5 5 10000
+run 300000
+unfix anneal3
+
+fix anneal4 all npt temp 600 600 100 iso 5 5 10000
+run 500000
+unfix anneal4
+
+fix anneal5 all npt temp 600 500 100 iso 5 5 10000
+run 300000
+unfix anneal5
+
+fix anneal2 all npt temp 500 400 100 iso 5 5 10000
+run 300000
+unfix anneal2
+
+fix anneal1 all npt temp 400 300 100 iso 5 5 10000
+run 300000
+unfix anneal1
+
+fix anneal6 all npt temp 300 300 100 iso 5 5 10000
+run 200000
+unfix anneal6
+
+# 5 → 1
+fix npt4 all npt temp 300 300 100 iso 5 1 10000
+run 200000
+unfix npt4
+
+# 6 → 1
+fix npt5 all npt temp 300 300 100 iso 1 1 1000
+run 500000
+
+unfix npt5 
+undump d2
+
+# ==========================================
+# OUTPUT FINAL
+# ==========================================
+
+write_data minimized_npt.data
+
