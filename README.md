@@ -41,3 +41,5 @@ Para esto usaremos los archivos:
 - `pcff.in`
 
 Y el software de LAMMPS.
+
+Trabajando en un sistema de colas `LSF` cargamos el modulo `mpi/openmpi-4.1.1-gcc8` y ejecutamos el archivo `run100.sh` con el comando `bsub < run100.sh` para correr la simulación.
